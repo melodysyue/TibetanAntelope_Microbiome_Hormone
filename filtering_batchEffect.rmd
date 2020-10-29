@@ -1,0 +1,101 @@
+---
+title: "TibetanAntelope_Microbiome_DataFiltering_BatchEffectCorrection"
+author: "Yue Shi, University of Washington,"
+date: "`r date()`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### Get it ready 
+
+Load the libraries
+```{r}
+rm(list=ls())
+library(tidyverse)
+library(skimr) 
+library(sva) #ComBat_seq
+```
+
+Read the data
+```{r}
+count_tab <- read.table("./data/ASV_counts.tsv",header=TRUE, row.names=1, check.names=F, sep="\t") 
+tax_tab <- read.table("./data/ASV_taxonomy.tsv", header=TRUE, row.names=1, check.names=F, sep="\t")
+```
+
+### Data filtering
+
+```{r}
+# Keep ASV with >= 10 reads in the entire data set. 
+asv.keep <- rownames(count_tab[rowSums(count_tab)>=10,])
+count.nosig <- count_tab[rownames(count_tab) %in% asv.keep,]
+tax.nosig <- tax_tab[rownames(tax_tab) %in% asv.keep,]
+skim(rowSums(count.nosig))
+skim(colSums(count.nosig))
+
+# Remove newborn samples F38/F39 and remove ASVs specific to both samples
+count.nosig.adt <- count.nosig %>% 
+  select(-F38, -F39) ##F38, F39 are newborn samples
+
+asv.keep <- rownames(count.nosig.adt[rowSums(count.nosig.adt)>0,])
+count.nosig.adt.no0 <- count.nosig.adt[rownames(count.nosig.adt) %in% asv.keep,]
+tax.nosig.adt.no0 <- tax.nosig[rownames(tax.nosig) %in% asv.keep,]
+
+# Generate some summary statistics
+# total read count after filtering
+sum(count.nosig.adt.no0)
+# average read count per sample
+sum(count.nosig.adt.no0)/ncol(count.nosig.adt.no0)
+# distribution of read count among samples
+skim(colSums(count.nosig.adt.no0))
+# total number of ASVs after filtering
+nrow(count.nosig.adt.no0)
+
+# Save the output
+write.table(count.nosig.adt.no0, "./data/ASV_count_filter.txt", quote=F, row.names=T)
+write.table(tax.nosig.adt.no0, "./data/ASV_taxonomy_filter.txt", quote=F, row.names = T)
+```
+
+### Correct batch effects
+
+```{r}
+# Load the data
+rm(list=ls())
+count <- read.table("./data/ASV_count_filter.txt",header=T)
+tax <- read.table("./data/ASV_taxonomy_filter.txt", header=T)
+meta <- read.csv("./data/meta_filter.csv", header=T)
+
+# Remove ASVs with 0 count in any sampling session
+cts.session <- count
+cts.session <- cts.session %>% 
+  rownames_to_column("id") %>% 
+  mutate(sesA=rowSums(select(.,starts_with("A")))) %>% 
+  mutate(sesB=rowSums(select(.,starts_with("B")))) %>% 
+  mutate(sesC=rowSums(select(.,starts_with("C")))) %>% 
+  mutate(sesD=rowSums(select(.,starts_with("D")))) %>% 
+  mutate(sesE=rowSums(select(.,starts_with("E")))) %>% 
+  mutate(sesF=rowSums(select(.,starts_with("F")))) %>% 
+  select(id,starts_with("ses")) 
+cts.session[cts.session==0] <- NA
+cts.ses.complete<-cts.session[complete.cases(cts.session),]
+avs.target <- cts.ses.complete$id
+count.rm <- count[rownames(count) %in% avs.target, ]
+
+# Batch effect correction using ComBat-Seq
+count.rm <- as.matrix(count.rm)
+cts.rm.cbseq <- ComBat_seq(count.rm, batch=meta$run, group=meta$reproduction, full_mod = TRUE, shrink = FALSE)
+
+# Save output
+write.table(count.rm, "./data/ASV_count_filter_rmSession.txt", quote=F, row.names = T)
+write.table(cts.rm.cbseq, "./data/ASV_count_filter_rmSession_cbseq.txt", quote=F, row.names = T)
+```
+

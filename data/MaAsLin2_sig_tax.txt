@@ -1,0 +1,7 @@
+feature metadata value coef stderr pval name qval N N.not.zero Kingdom Phylum Class Order Family Genus Species
+ASV_558 reproduction Postpartum -0.0220671923311327 0.00495030212703789 2.35680397507541e-05 reproductionPostpartum 0.00403013479737895 95 36 Bacteria Firmicutes Clostridia Clostridiales Eubacteriaceae Anaerofustis NA
+ASV_36 cortisol cortisol -0.0204577417947273 0.00534507516283947 0.000240095263894781 cortisol 0.0205281450630038 95 95 Bacteria Firmicutes Clostridia Clostridiales Christensenellaceae Christensenellaceae_R-7_group NA
+ASV_34 cortisol cortisol 0.0312534444674025 0.00849900349141795 0.000398822561045774 cortisol 0.0227328859796091 95 90 Bacteria Bacteroidetes Bacteroidia Bacteroidales Rikenellaceae Rikenellaceae_RC9_gut_group NA
+ASV_9 T3 T3 0.0123892472876477 0.00355518358169154 0.000765634183792469 T3 0.0327308613571281 95 95 Bacteria Firmicutes Clostridia Clostridiales Lachnospiraceae Agathobacter NA
+ASV_550 reproduction Postpartum -0.0133524515654555 0.00402844791241291 0.0013190426973007 reproductionPostpartum 0.0418401277160296 95 72 Bacteria Firmicutes Clostridia Clostridiales Ruminococcaceae Papillibacter NA
+ASV_550 T3 T3 -0.006764575773865 0.00206183774893343 0.00146807465670279 T3 0.0418401277160296 95 72 Bacteria Firmicutes Clostridia Clostridiales Ruminococcaceae Papillibacter NA

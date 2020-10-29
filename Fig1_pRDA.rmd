@@ -1,0 +1,209 @@
+---
+title: "TibetanAntelope_Microbiome_Fig1_pRDA"
+author: "Yue Shi, University of Washington,"
+date: "`r date()`"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### Get it ready
+
+Load the libraries
+
+```{r}
+library(phyloseq)
+library(vegan)
+library(DESeq2)
+library(dendextend)
+library(viridis)
+library(reshape2)
+library(plyr)
+library(colorspace)
+library(ggdendro)
+library(ape)
+library(colormap)
+library(RColorBrewer)
+library(ggpmisc)
+library(ggpubr)
+library(grid)
+library(tidyverse)
+library(cowplot) #plot_grid
+library(gridGraphics) #plot base plot and ggplot together
+```
+
+Load the data
+```{r}
+rm(list=ls())
+count <- read.table("./CM_output/ASV_count_filter_rmSession_cbseq.txt",header=TRUE, row.names=1) 
+tax <- read.table("./CM_output/ASV_taxonomy_filter.txt", header=TRUE, row.names=1)
+meta <- read.csv("./CM_output/meta_filter.csv", header=T) 
+
+tax <- tax[rownames(tax) %in% rownames(count),]
+
+### add time difference in the meta file
+meta <- meta %>% 
+  mutate(time=ymd((paste0(year,0, month,date)))) %>% 
+  mutate(time_diff=interval("2017-05-13", time) %/%days(1))
+
+meta[,8:12] <- data.frame(lapply(meta[,8:12],factor))
+meta$reproduction <- factor(meta$reproduction, levels = c("Late Pregnancy", "Postpartum"))
+
+```
+
+
+### Beta Diversity
+
+```{r}
+# build phyloseq object
+rownames(meta) <- meta$sampleID
+tax=as.matrix(tax)
+rownames(meta)=meta$sampleID
+ps <- phyloseq(otu_table(count,taxa_are_rows=T), 
+               sample_data(meta),
+               tax_table(tax))
+
+ps.genus <- tax_glom(ps, taxrank="Genus")
+
+ps.genus
+
+# convert to DESeq2 project. 
+deseq = phyloseq_to_deseq2(ps.genus, ~ reproduction)
+cts.vst <- varianceStabilizingTransformation(deseq)
+cts.vst.trans <- assay(cts.vst)
+# calculate Euclidean distance matrix
+euc_dist <- dist(t(cts.vst.trans), method="euclidean")
+
+# hierarchical clustering
+dend <-  euc_dist %>% 
+  hclust(method="ward.D2") %>% 
+  as.dendrogram()
+
+# Color by reproduction stages
+color.repro=brewer.pal(n=2,name="Dark2")[as.numeric(meta$reproduction)[order.dendrogram(dend)]] 
+legend.col <- c("#1B9E77", "#D95F02")
+dend %>% 
+  set("leaves_pch", 19) %>% 
+  set("leaves_cex", 0.5) %>% 
+  set("leaves_col", color.repro) %>% 
+  plot(axes=FALSE, leaflab="none")
+p.repro.clust <- recordPlot()
+```
+
+### Ordination
+
+```{r}
+# make a phyloseq object with vst transformed table. 
+rownames(meta)=meta$sampleID
+vst_count_phy <- otu_table(cts.vst.trans, taxa_are_rows = T)
+sample_info_phy <- sample_data(meta)
+vst_physeq <- phyloseq(vst_count_phy, sample_info_phy)
+
+# PCoA by reproduction stages
+vst_pcoa <- ordinate(vst_physeq, method="MDS",distance="euclidean")
+eigen_vals <- vst_pcoa$values$Eigenvalues
+plot(eigen_vals)
+
+legend.col <- c("#1B9E77", "#D95F02")
+p.repro.pcoa <- plot_ordination(vst_physeq, vst_pcoa, color="reproduction") +
+  geom_point(alpha=0.8) + 
+  theme_classic(base_size=20)+
+  scale_color_manual(values=legend.col)+
+  theme(legend.title=element_blank())
+
+```
+
+### Alpha Diversity
+
+Alpha diveristy measures have taken difference in sequencing depth into consideration, therefore, not need to transform the data. Construct phyloseq object with un-transformed count table. 
+
+```{r}
+ps
+alpha_meas = c("Observed", "Chao1", "ACE", "Shannon","InvSimpson", "Fisher")
+alpha_measure=estimate_richness(ps)
+alpha_measure_ID <- 
+  cbind(sampleID=rownames(alpha_measure), alpha_measure)
+meta.alpha <- left_join(alpha_measure_ID, meta, by="sampleID")
+
+alpha_diversity <- 
+  meta.alpha %>% 
+  select(sampleID, reproduction, session, time, time_diff, Observed, Chao1, ACE, Shannon,InvSimpson, Fisher) %>% 
+  gather(key="alpha", value="value", -sampleID, -reproduction, -session, -time, -time_diff)
+
+alpha_diversity$alpha=factor(alpha_diversity$alpha, levels = c("Observed","Chao1", "ACE","Shannon","InvSimpson", "Fisher"))
+
+
+p.repro.alpha <- alpha_diversity %>% 
+  ggplot(aes(x=reproduction, y=value))+
+  geom_boxplot(aes(fill=reproduction), alpha=0.8)+
+  theme_classic(base_size=20)+
+  scale_fill_brewer(palette = "Dark2")+
+  ylab("Alpha diveristy measurement")+
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title.x = element_blank(),
+        strip.background = element_rect(colour = NA))+
+  facet_wrap(~ alpha, scales = "free", ncol=6)+
+  stat_compare_means(method = "t.test",
+                     aes(label = ..p.signif..),
+                     label.x.npc = "middle",
+                     label.y.npc = "top")
+
+```
+
+### Make Fig.1 - Put them together in the same plot with shared legend 
+
+```{r}
+
+p.repro.alpha
+p.repro.pcoa
+p.repro.clust
+legend <- get_legend(
+  p.repro.pcoa+
+    guides(color = guide_legend(nrow = 1)) +
+    theme(legend.position = "bottom",
+          legend.text = element_text(size=20))
+)
+
+prow <- plot_grid(
+  p.repro.clust,
+  p.repro.pcoa+theme(legend.position = "none"),
+  labels = c("A","B"), label_size=20,
+  nrow=1
+)
+
+pdf("./Figures/Fig1.pdf", width = 18, height = 14)
+plot_grid(prow,
+          p.repro.alpha + theme(legend.position = "none"), 
+          legend,
+          ncol=1, rel_heights = c(1, 1, 0.05), labels=c("","C"), label_size=20)
+dev.off()
+```
+
+### Account for effect of sampling session using parital RDA
+
+```{r}
+ps.genus
+cts.genus <- as.data.frame(otu_table(ps.genus))
+
+prda.repro <- rda(t(cts.genus) ~ reproduction + Condition(time_diff), data=meta, scale=T) #variance explained by reproduction only;
+RsquareAdj(prda.repro)
+anova.cca(prda.repro, parallel=4, permutation=100) #significance test for full model
+
+
+prda.session <- rda(t(cts.genus) ~ time_diff + Condition(reproduction), data=meta, scale=T) #variance explained by time_diff only;
+RsquareAdj(prda.session)
+anova.cca(prda.session, parallel=4, permutation=100) #significance test for full model
+```
+
+
+

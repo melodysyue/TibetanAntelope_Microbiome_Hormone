@@ -1,0 +1,169 @@
+---
+title: 'TibetanAntelope_Microbiome_Fig2&3'
+author: "Yue Shi, PhD candidate, University of Washington"
+date: "r date()"
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_depth: '4'
+  pdf_document:
+    toc: yes
+    toc_depth: 4
+---
+
+```{r global_options, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE, warning=FALSE, message=FALSE)
+```
+
+### Get it ready
+
+Load the libraries
+```{r}
+library(tidyverse) #THE package for data manipulation
+library(RColorBrewer)
+library(ggpmisc)
+```
+
+Read the data
+```{r}
+rm(list=ls())
+count <- read.table("./data/ASV_count_filter_rmSession_cbseq_Genus.txt",header=TRUE, row.names=1) 
+tax <- read.table("./data/ASV_taxonomy_filter_rmSession.txt", header=TRUE, row.names=1)
+meta <- read.csv("./data/meta_filter.csv", header=T) 
+target <- read.table("./data/MaAsLin2_sig_tax.txt", header=T)
+
+target <- target %>% 
+  filter(metadata!="reproduction")
+
+meta <- meta %>% 
+  mutate(T3=log(T3)) %>% 
+  mutate(cortisol=log(cortisol))
+
+# Convert to relative abundance and subset to the significant taxa
+prop <- apply(count,2,function(x) x/sum(x)*100)
+prop <- as.data.frame(t(prop))
+prop$sampleID <- rownames(prop)
+
+prop.meta <- 
+  left_join(prop, meta, by="sampleID") %>% 
+  select(sampleID, reproduction, T3, cortisol, target$Genus) 
+```
+
+### Fig.2: Microbial taxa significantly assocaited with reproductive states
+
+```{r}
+dat_text <- target %>% 
+  select(taxa=Genus, coef, qval) %>% 
+  mutate(label=sprintf(
+               "FDR: %s\nCoefficient: %s",
+               formatC(qval, format="e", digits = 3),
+               formatC(coef, format="e", digits=3)))
+
+prop.meta.long <- prop.meta %>% 
+    gather(key = taxa, value = Proportion,-sampleID, -reproduction, -T3, -cortisol) %>% 
+    mutate(taxa = fct_reorder(taxa, Proportion, mean, .desc=TRUE)) 
+
+
+pdf("./Figures/Fig2.pdf", width = 12, height = 8)
+prop.meta.long %>% 
+    ggplot(aes(x=reproduction, y=Proportion)) +
+    scale_fill_brewer(palette = "Dark2")+
+    geom_boxplot(aes(fill=reproduction), alpha=0.5) +
+    geom_jitter(aes(fill=reproduction), alpha=0.75, size=3, shape=21, stroke=0.15, color="black")+
+    theme_classic(base_size=20)+
+    theme(axis.text.x=element_blank(),
+          axis.title.x = element_blank(),
+          axis.ticks.x = element_blank(),
+          legend.title=element_blank(),
+          legend.position="bottom") +
+    ylab("Relative abundance %") +
+    facet_wrap(~taxa, scales="free_y")+
+    geom_text(data=dat_text,
+              mapping=aes(x=Inf, y=Inf, label=label),
+              hjust=1, vjust=1,
+              color="black", fontface="italic")
+dev.off()
+```
+
+### Fig.3: Microbial taxa significantly assocaited with hormones T3 and GC
+
+```{r}
+dat_text <- target %>% 
+  select(taxa=Genus, horm=metadata, coef, qval) %>% 
+  mutate(label=sprintf(
+               "FDR: %s\nCoefficient: %s",
+               formatC(qval, format="e", digits = 3),
+               formatC(coef, format="e", digits=3)))
+
+gc_text <- dat_text %>% 
+  filter(horm=="cortisol")
+
+t3_text <- dat_text %>% 
+  filter(horm=="T3")
+
+p.gc <-prop.meta %>% 
+      select(sampleID, reproduction, T3, cortisol, gc_text$taxa) %>% 
+      gather(key = taxa, value = Proportion,-sampleID, -reproduction, -T3, -cortisol) %>% 
+      mutate(taxa = fct_reorder(taxa, Proportion, mean, .desc=TRUE)) %>% 
+      ggplot(aes(x=cortisol, y=Proportion)) +
+      scale_fill_brewer(palette = "Dark2")+
+      geom_smooth(method=lm, color="black", linetype="dashed", fullrange="FALSE")+
+      geom_point(aes(fill=reproduction), alpha=0.75, size=3, shape=21, stroke=0.15, color="black")+
+      theme_classic(base_size=20)+
+      theme(legend.title=element_blank(),
+            legend.position="none") +
+      xlab("Fecal GC metabolite concentration \n (natural log transformed, ng/g)")+
+      ylab("Relative abundance %") +
+      facet_wrap(~taxa, scales="free_y")+
+      geom_text(data=gc_text,
+                mapping=aes(x=Inf, y=Inf, label=label),
+                hjust=1, vjust=1,
+                color="black", fontface="italic")
+
+p.t3 <-prop.meta %>% 
+      select(sampleID, reproduction, T3, cortisol, t3_text$taxa) %>% 
+      gather(key = taxa, value = Proportion,-sampleID, -reproduction, -T3, -cortisol) %>% 
+      mutate(taxa = fct_reorder(taxa, Proportion, mean, .desc=TRUE)) %>% 
+      ggplot(aes(x=T3, y=Proportion)) +
+      scale_fill_brewer(palette = "Dark2")+
+      geom_smooth(method=lm, color="black", linetype="dashed", fullrange="FALSE")+
+      geom_point(aes(fill=reproduction), alpha=0.75, size=3, shape=21, stroke=0.15, color="black")+
+      theme_classic(base_size=20)+
+      theme(legend.title=element_blank(),
+            legend.position="none") +
+      xlab("Fecal T3 metabolite concentration \n (natural log transformed, ng/g)")+
+      ylab("Relative abundance %") +
+      facet_wrap(~taxa, scales="free_y")+
+      geom_text(data=t3_text,
+                mapping=aes(x=Inf, y=Inf, label=label),
+                hjust=1, vjust=1,
+                color="black", fontface="italic")
+    
+
+p_h <- meta %>% 
+  select(sampleID, GC=cortisol, T3, reproduction, session) %>% 
+  gather(hormone, value, -reproduction, -session, -sampleID) %>% 
+  ggplot(aes(x=reproduction,y=value, fill=reproduction))+
+  geom_boxplot(alpha = 0.8)+
+  scale_fill_brewer(palette = "Dark2")+
+  theme_classic(base_size=20)+
+  theme(axis.title.x = element_blank(),
+        legend.title = element_blank(),
+        legend.position="none",
+        strip.background = element_rect(colour = NA),
+        strip.text.x = element_text(face="bold", size=15))+
+  ylab("Fecal hormone metabolite concentration \n (natural log transformed, ng/g)")+
+  facet_wrap(~hormone)+
+  stat_compare_means(method = "wilcox.test", #non-parametric
+                     paired = FALSE, 
+                     aes(label = ..p.signif..),
+                     label.x = 1.5,
+                     label.y = 6.5)
+
+
+pdf("./Figures/Fig3.pdf", width = 18, height=12)
+p_s <- plot_grid(p.gc, p.t3, labels=c("B","C"), nrow=2)
+plot_grid(p_h, p_s,ncol=2, labels=c("A",""))
+dev.off()
+```
