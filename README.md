@@ -1,14 +1,15 @@
 # TibetanAntelope_Microbiome_Hormone
- For the manuscript: Shift of maternal gut microbiome of Tibetan antelope  (Pantholops hodgsonii) during the perinatal period
+How to cite:
+Shi Y, Miao ZY, Su JP, Wasser SK (2020).Shift of maternal gut microbiome of Tibetan antelope (Pantholops hodgsonii) during the perinatal period. *Current Microbiology*.
  
 # R scripts (.rmd)
-*filtering_batchEffect.rmd*: filter raw ASV count table and correct batch effect of different sequencing runs;
+**filtering_batchEffect.rmd**: filter raw ASV count table and correct batch effect of different sequencing runs;
 
-*Fig1_pRDA.rmd*: hierarchical clustering analysis, PCoA, alpha diversity measures and pRDA;
+**Fig1_pRDA.rmd**: hierarchical clustering analysis, PCoA, alpha diversity measures and pRDA;
 
-*maaslin2.rmd*: MaAsLin2 analysis to identify significant microbial taxa;
+**maaslin2.rmd**: MaAsLin2 analysis to identify significant microbial taxa;
 
-*Fig2_Fig3.rmd*: data visualization for Fig 2 and 3 in the manuscript. 
+**Fig2_Fig3.rmd**: data visualization for Fig 2 and 3 in the manuscript. 
 
 
 # Data
@@ -24,8 +25,8 @@
 
 
 # Figures
-**Fig.1** Shift of maternal gut microbiota in female Tibetan antelope in the transition from late pregnancy to the postpartum period. A) Hierarchical clustering analysis with a Euclidean distance matrix after variance stabilizing transformation. Each leaf of the dendrogram represents one fecal sample (N=95); B) Principal coordinates analysis (PCoA) for gut microbial communities as a function of the reproductive state (N=95). The analysis was based on Euclidean distance after variance stabilizing transformation; C) Changes in alpha diversity metrics of the maternal gut microbiota in different reproductive states.  Statistical significance was assessed by t-tests. Note: ns: not significant; **: p < 0.01.
+**Fig.1** Shift of maternal gut microbiota in female Tibetan antelope in the transition from late pregnancy to the postpartum period. Hierarchical clustering analysis (A) and principal coordinates analysis (PCoA) (B) for gut microbial communities at the genus level as a function of the reproductive state (N=95). Both analyses were based on a Euclidean distance matrix after variance stabilizing transformation. C) Changes in alpha diversity metrics of the maternal gut microbiota at the ASV level in different reproductive states. Statistical significance was assessed by t-tests. Note: ns: not significant; **: *p* < 0.01.
 
-**Fig.2** Microbial genera identified with significantly differential abundance as a function of reproductive states of Tibetan antelope using general linear mixed model implemented MaAsLin2 R package. p values were adjusted with the Benjamini-Hochberg method to control for false discovery rate (FDR). Coefficient indicates the contrast between two reproductive states with late pregnancy as reference.
+**Fig.2** Microbial genera identified with significantly differential abundance as a function of reproductive states of Tibetan antelope using general linear mixed model implemented MaAsLin2 R package. *p* values were adjusted with the Benjamini-Hochberg method to control for false discovery rate (FDR). Coefficient indicates the contrast between two reproductive states with late pregnancy as reference.
 
-**Fig.3** Changes in fecal hormone metabolite concentrations (GC and T3) between two reproductive states of Tibetan antelope (A) and microbial genera with significant association with the hormonal changes (panel B for GC and panel C for T3) using general linear mixed model implemented MaAsLin2 R package. p values were adjusted with the Benjamini-Hochberg method to control for false discovery rate (FDR). Coefficient indicates the degree of correlation. 
+**Fig.3** Changes in fecal hormone metabolite concentrations (GC and T3) between two reproductive states of Tibetan antelope (A) and microbial genera with significant association with changes in GC (B) and T3 (C) using general linear mixed model implemented MaAsLin2 R package. *p* values were adjusted with the Benjamini-Hochberg method to control for false discovery rate (FDR). Coefficient indicates the degree of correlation.
