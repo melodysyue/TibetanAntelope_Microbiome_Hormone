@@ -1,6 +1,6 @@
 # TibetanAntelope_Microbiome_Hormone
 How to cite:
-Shi Y, Miao ZY, Su JP, Wasser SK (2020).Shift of maternal gut microbiome of Tibetan antelope (Pantholops hodgsonii) during the perinatal period. *Current Microbiology*.
+Shi Y, Miao ZY, Su JP, Wasser SK (2020).Shift of maternal gut microbiome of Tibetan antelope (*Pantholops hodgsonii*) during the perinatal period. *Current Microbiology*.
  
 # R scripts (.rmd)
 **filtering_batchEffect.rmd**: filter raw ASV count table and correct batch effect of different sequencing runs;
