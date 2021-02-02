@@ -1,6 +1,6 @@
 ---
 title: 'TibetanAntelope_Microbiome_Fig2&3'
-author: "Yue Shi, PhD candidate, University of Washington"
+author: "Yue Shi, University of Washington"
 date: "r date()"
 output:
   html_document:
